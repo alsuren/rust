@@ -1327,6 +1327,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                                    attributes to enable",
                             );
                         }
+                        // Explodes here
                         err.emit();
                         hir::TyKind::Err
                     }
@@ -1660,7 +1661,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     // Lowers a function declaration.
     //
     // `decl`: the unlowered (AST) function declaration.
-    // `fn_def_id`: if `Some`, impl Trait arguments are lowered into generic parameters on the
+    // `in_band_ty_params`: if `Some`, impl Trait arguments are lowered into generic parameters on the
     //      given DefId, otherwise impl Trait is disallowed. Must be `Some` if
     //      `make_ret_async` is also `Some`.
     // `impl_trait_return_allow`: determines whether `impl Trait` can be used in return position.

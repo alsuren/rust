@@ -407,10 +407,20 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             let inputs = this.arena.alloc_from_iter(
                 inputs.iter().map(|ty| this.lower_ty_direct(ty, ImplTraitContext::disallowed())),
             );
+
+            // FIXME: if output_ty is `impl Trait`, this will get populated with
+            //     GenericParam { bounds: [Trait(...)], ...}
+            // We should probably do something with this.
+            let mut generic_params = Vec::new();
             let output_ty = match output {
-                FnRetTy::Ty(ty) => this.lower_ty(&ty, ImplTraitContext::disallowed()),
+                FnRetTy::Ty(ty) => {
+                    this.lower_ty(&ty, ImplTraitContext::Universal(&mut generic_params))
+                }
                 FnRetTy::Default(_) => this.arena.alloc(this.ty_tup(span, &[])),
             };
+            if generic_params.len() != 0 {
+                println!("FIXME: Generic params from impl Trait: {:?}", generic_params);
+            }
             let args = smallvec![GenericArg::Type(this.ty_tup(span, inputs))];
             let binding = this.output_ty_binding(output_ty.span, output_ty);
             (
