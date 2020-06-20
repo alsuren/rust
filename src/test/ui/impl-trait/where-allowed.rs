@@ -11,6 +11,9 @@ fn in_return() -> impl Debug { panic!() }
 // Allowed
 fn in_adt_in_parameters(_: Vec<impl Debug>) { panic!() }
 
+// Allowed
+fn in_impl_Fn_return_in_parameters(_: &impl Fn() -> impl Debug) { panic!() }
+
 // Disallowed
 fn in_fn_parameter_in_parameters(_: fn(impl Debug)) { panic!() }
 //~^ ERROR `impl Trait` not allowed outside of function and inherent method return types
@@ -47,10 +50,6 @@ fn in_dyn_Fn_return_in_return() -> &'static dyn Fn() -> impl Debug { panic!() }
 fn in_impl_Fn_parameter_in_parameters(_: &impl Fn(impl Debug)) { panic!() }
 //~^ ERROR `impl Trait` not allowed outside of function and inherent method return types
 //~^^ ERROR nested `impl Trait` is not allowed
-
-// Disallowed
-fn in_impl_Fn_return_in_parameters(_: &impl Fn() -> impl Debug) { panic!() }
-//~^ ERROR `impl Trait` not allowed outside of function and inherent method return types
 
 // Disallowed
 fn in_impl_Fn_parameter_in_return() -> &'static impl Fn(impl Debug) { panic!() }
