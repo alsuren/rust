@@ -1327,6 +1327,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                                    attributes to enable",
                             );
                         }
+                        // Explodes here
                         err.emit();
                         hir::TyKind::Err
                     }
