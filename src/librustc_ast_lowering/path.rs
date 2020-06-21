@@ -420,7 +420,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                 }
                 FnRetTy::Default(_) => this.arena.alloc(this.ty_tup(span, &[])),
             };
-            let binding: hir::TypeBinding<'hir> = if generic_params.len() != 0 {
+            let binding: hir::TypeBinding<'hir> = if generic_params.len() != 0 || false {
                 println!("FIXME: Generic params from impl Trait: {:?}", generic_params);
                 let bounds = generic_params[0].bounds;
                 // FIXME: use lower_assoc_ty_constraint() here?
