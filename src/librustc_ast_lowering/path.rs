@@ -422,12 +422,16 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             };
             let binding: hir::TypeBinding<'hir> = if generic_params.len() != 0 {
                 println!("FIXME: Generic params from impl Trait: {:?}", generic_params);
-                this.arena.alloc_from_iter(generic_params);
+                let bounds = generic_params[0].bounds;
                 // FIXME: use lower_assoc_ty_constraint() here?
                 // self.lower_assoc_ty_constraint(c, itctx.reborrow())
                 // let bounds = self.lower_param_bounds(bounds, itctx);
                 // this.output_ty_binding_with_bounds(output_ty.span, output_ty, generic_params)
-                this.output_ty_binding(output_ty.span, output_ty)
+                // this.output_ty_binding(output_ty.span, output_ty);
+
+                let ident = Ident::with_dummy_span(hir::FN_OUTPUT_NAME);
+                let kind = hir::TypeBindingKind::Constraint { bounds: bounds };
+                hir::TypeBinding { hir_id: this.next_id(), span, ident, kind }
             } else {
                 this.output_ty_binding(output_ty.span, output_ty)
             };
