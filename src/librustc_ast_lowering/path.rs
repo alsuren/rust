@@ -396,6 +396,8 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     fn lower_parenthesized_parameter_data(
         &mut self,
         data: &ParenthesizedArgs,
+        // FIXME: I think that the generic params vec wants to be passed in
+        // here as a mutable ref, so that the hir map finds out about the bounds.
     ) -> (GenericArgsCtor<'hir>, bool) {
         // Switch to `PassThrough` mode for anonymous lifetimes; this
         // means that we permit things like `&Ref<T>`, where `Ref` has
@@ -407,12 +409,36 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             let inputs = this.arena.alloc_from_iter(
                 inputs.iter().map(|ty| this.lower_ty_direct(ty, ImplTraitContext::disallowed())),
             );
-            let output_ty = match output {
-                FnRetTy::Ty(ty) => this.lower_ty(&ty, ImplTraitContext::disallowed()),
-                FnRetTy::Default(_) => this.arena.alloc(this.ty_tup(span, &[])),
+
+            // FIXME: if output_ty is `impl Trait`, this will get populated with
+            //     GenericParam { bounds: [Trait(...)], ...}
+            // We should probably do something with this.
+            let mut generic_params: Vec<hir::GenericParam<'hir>> = Vec::new();
+            let binding: hir::TypeBinding<'hir> = match output {
+                FnRetTy::Ty(ty) => match ty.kind {
+                    TyKind::ImplTrait(_def_node_id, ref bounds) => {
+                        // copy-pasta from lower_ty_direct() and output_ty_binding():
+                        let hir_bounds = this.lower_param_bounds(
+                            bounds,
+                            ImplTraitContext::Universal(&mut generic_params),
+                        );
+                        let ident = Ident::with_dummy_span(hir::FN_OUTPUT_NAME);
+                        let kind = hir::TypeBindingKind::Constraint { bounds: hir_bounds };
+                        hir::TypeBinding { hir_id: this.next_id(), span, ident, kind }
+                    }
+                    _ => {
+                        let output_ty = this.lower_ty(&ty, ImplTraitContext::disallowed());
+                        this.output_ty_binding(output_ty.span, output_ty)
+                    }
+                },
+                FnRetTy::Default(_) => {
+                    let output_ty = this.arena.alloc(this.ty_tup(span, &[]));
+                    this.output_ty_binding(output_ty.span, output_ty)
+                }
             };
-            let args = smallvec![GenericArg::Type(this.ty_tup(span, inputs))];
-            let binding = this.output_ty_binding(output_ty.span, output_ty);
+            let args: smallvec::SmallVec<[GenericArg<'hir>; 4]> =
+                smallvec![GenericArg::Type(this.ty_tup(span, inputs))];
+
             (
                 GenericArgsCtor { args, bindings: arena_vec![this; binding], parenthesized: true },
                 false,

@@ -291,7 +291,7 @@ impl<'hir> Map<'hir> {
     }
 
     fn get_entry(&self, id: HirId) -> Entry<'hir> {
-        self.find_entry(id).unwrap()
+        self.find_entry(id).unwrap_or_else(|| panic!("Can't find Entry for HirId {:?}", id))
     }
 
     pub fn item(&self, id: HirId) -> &'hir Item<'hir> {
@@ -503,7 +503,11 @@ impl<'hir> Map<'hir> {
     /// Retrieves the `Node` corresponding to `id`, returning `None` if cannot be found.
     pub fn find(&self, hir_id: HirId) -> Option<Node<'hir>> {
         self.find_entry(hir_id).and_then(|entry| {
-            if let Node::Crate(..) = entry.node { None } else { Some(entry.node) }
+            if let Node::Crate(..) = entry.node {
+                None
+            } else {
+                Some(entry.node)
+            }
         })
     }
 

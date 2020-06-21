@@ -1,0 +1,16 @@
+#![feature(prelude_import)]
+#![no_std]
+#[prelude_import]
+use ::std::prelude::v1::*; /* 4 */
+#[macro_use]
+extern crate std; /* 10 */
+use std::fmt::Debug; /* 11 */
+fn in_impl_Fn_return_in_parameters(_ /* pat 19 */: &impl Fn() -> impl Debug) {
+    ({
+         ({
+              ((::std::rt::begin_panic /* 38 */)(("explicit panic" /* 39 */))
+                  /* 40 */)
+          } /* block 34 */ /* 41 */)
+     } /* block 32 */ /* 33 */)
+} /* block 29 */ /* 17 */
+fn main() { } /* block 31 */ /* 30 */
