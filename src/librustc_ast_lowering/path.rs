@@ -396,6 +396,8 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     fn lower_parenthesized_parameter_data(
         &mut self,
         data: &ParenthesizedArgs,
+        // FIXME: I think that the generic params vec wants to be passed in
+        // here as a mutable ref, so that the hir map finds out about the bounds.
     ) -> (GenericArgsCtor<'hir>, bool) {
         // Switch to `PassThrough` mode for anonymous lifetimes; this
         // means that we permit things like `&Ref<T>`, where `Ref` has
@@ -411,18 +413,26 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             // FIXME: if output_ty is `impl Trait`, this will get populated with
             //     GenericParam { bounds: [Trait(...)], ...}
             // We should probably do something with this.
-            let mut generic_params = Vec::new();
+            let mut generic_params: Vec<hir::GenericParam<'hir>> = Vec::new();
             let output_ty = match output {
                 FnRetTy::Ty(ty) => {
                     this.lower_ty(&ty, ImplTraitContext::Universal(&mut generic_params))
                 }
                 FnRetTy::Default(_) => this.arena.alloc(this.ty_tup(span, &[])),
             };
-            if generic_params.len() != 0 {
+            let binding: hir::TypeBinding<'hir> = if generic_params.len() != 0 {
                 println!("FIXME: Generic params from impl Trait: {:?}", generic_params);
-            }
-            let args = smallvec![GenericArg::Type(this.ty_tup(span, inputs))];
-            let binding = this.output_ty_binding(output_ty.span, output_ty);
+                // FIXME: use lower_assoc_ty_constraint() here?
+                // self.lower_assoc_ty_constraint(c, itctx.reborrow())
+                // let bounds = self.lower_param_bounds(bounds, itctx);
+                // this.output_ty_binding_with_bounds(output_ty.span, output_ty, generic_params)
+                this.output_ty_binding(output_ty.span, output_ty)
+            } else {
+                this.output_ty_binding(output_ty.span, output_ty)
+            };
+            let args: smallvec::SmallVec<[GenericArg<'hir>; 4]> =
+                smallvec![GenericArg::Type(this.ty_tup(span, inputs))];
+
             (
                 GenericArgsCtor { args, bindings: arena_vec![this; binding], parenthesized: true },
                 false,
