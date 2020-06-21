@@ -414,26 +414,27 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             //     GenericParam { bounds: [Trait(...)], ...}
             // We should probably do something with this.
             let mut generic_params: Vec<hir::GenericParam<'hir>> = Vec::new();
-            let output_ty = match output {
-                FnRetTy::Ty(ty) => {
-                    this.lower_ty(&ty, ImplTraitContext::Universal(&mut generic_params))
+            let binding: hir::TypeBinding<'hir> = match output {
+                FnRetTy::Ty(ty) => match ty.kind {
+                    TyKind::ImplTrait(_def_node_id, ref bounds) => {
+                        // copy-pasta from lower_ty_direct() and output_ty_binding():
+                        let hir_bounds = this.lower_param_bounds(
+                            bounds,
+                            ImplTraitContext::Universal(&mut generic_params),
+                        );
+                        let ident = Ident::with_dummy_span(hir::FN_OUTPUT_NAME);
+                        let kind = hir::TypeBindingKind::Constraint { bounds: hir_bounds };
+                        hir::TypeBinding { hir_id: this.next_id(), span, ident, kind }
+                    }
+                    _ => {
+                        let output_ty = this.lower_ty(&ty, ImplTraitContext::disallowed());
+                        this.output_ty_binding(output_ty.span, output_ty)
+                    }
+                },
+                FnRetTy::Default(_) => {
+                    let output_ty = this.arena.alloc(this.ty_tup(span, &[]));
+                    this.output_ty_binding(output_ty.span, output_ty)
                 }
-                FnRetTy::Default(_) => this.arena.alloc(this.ty_tup(span, &[])),
-            };
-            let binding: hir::TypeBinding<'hir> = if generic_params.len() != 0 || false {
-                println!("FIXME: Generic params from impl Trait: {:?}", generic_params);
-                let bounds = generic_params[0].bounds;
-                // FIXME: use lower_assoc_ty_constraint() here?
-                // self.lower_assoc_ty_constraint(c, itctx.reborrow())
-                // let bounds = self.lower_param_bounds(bounds, itctx);
-                // this.output_ty_binding_with_bounds(output_ty.span, output_ty, generic_params)
-                // this.output_ty_binding(output_ty.span, output_ty);
-
-                let ident = Ident::with_dummy_span(hir::FN_OUTPUT_NAME);
-                let kind = hir::TypeBindingKind::Constraint { bounds: bounds };
-                hir::TypeBinding { hir_id: this.next_id(), span, ident, kind }
-            } else {
-                this.output_ty_binding(output_ty.span, output_ty)
             };
             let args: smallvec::SmallVec<[GenericArg<'hir>; 4]> =
                 smallvec![GenericArg::Type(this.ty_tup(span, inputs))];
