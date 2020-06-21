@@ -422,6 +422,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             };
             let binding: hir::TypeBinding<'hir> = if generic_params.len() != 0 {
                 println!("FIXME: Generic params from impl Trait: {:?}", generic_params);
+                this.arena.alloc_from_iter(generic_params);
                 // FIXME: use lower_assoc_ty_constraint() here?
                 // self.lower_assoc_ty_constraint(c, itctx.reborrow())
                 // let bounds = self.lower_param_bounds(bounds, itctx);
